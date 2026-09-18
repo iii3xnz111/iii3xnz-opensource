@@ -1,0 +1,45 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+frontend/dist/
+backend/dist/
+coverage/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+*.env
+*.env.*
+!*.env.example
+flowforge_pgdata/
+self_host_secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# Local databases and backups
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak
+*.backup
+
+# Logs and local tooling
+*.log
+logs/
+.DS_Store
+.vscode/
+playwright-report/
+test-results/
+.playwright/
+.playwright-*/
+
+# Windows installer output and local installer runtime state
+installer/*.log
