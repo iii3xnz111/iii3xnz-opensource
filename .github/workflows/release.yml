@@ -1,0 +1,68 @@
+name: iii3xnz release build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\build-installer.ps1
+
+      - name: Verify installer artifact exists
+        shell: powershell
+        run: |
+          if (-not (Test-Path '.\dist\installer\iii3xnz-Setup.exe')) {
+            throw 'Installer output not found.'
+          }
+          Get-Item '.\dist\installer\iii3xnz-Setup.exe' | Select-Object FullName, Length
+
+      - name: Upload unsigned installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iii3xnz-setup-unsigned
+          path: dist/installer/iii3xnz-Setup.exe
+
+      - name: SignPath placeholder guidance
+        run: |
+          echo "This workflow prepares a release artifact. Configure the required SignPath secrets and signing step before publishing a signed release."
+          echo "Required GitHub Secrets should be provided by the maintainer and must never be committed to the repository."
+          echo "Do not store SignPath API tokens, private keys, certificates, or cloud credentials in source control."

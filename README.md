@@ -36,13 +36,14 @@ Provider APIs, credentials, quotas, pricing, and availability remain controlled 
 
 ### Windows
 
-1. Download the latest `iii3xnz-Setup.exe` from a GitHub Release.
-2. Run the installer.
-3. If Docker Desktop is missing, the installer uses Docker's official Docker Desktop installation flow.
-4. Approve normal UAC, Docker terms, or a required Windows restart when prompted.
-5. The installer starts Docker Desktop, launches PostgreSQL, the API, the worker, and the frontend, then waits for readiness.
-6. Your default browser opens to the local application.
-7. Create your first account.
+1. Official Windows releases will be published through GitHub Releases at https://github.com/iii3xnz111/iii3xnz-opensource/releases.
+2. Download the current `iii3xnz-Setup.exe` from that release page.
+3. Run the installer.
+4. If Docker Desktop is missing, the installer uses Docker's official Docker Desktop installation flow.
+5. Approve normal UAC, Docker terms, or a required Windows restart when prompted.
+6. The installer starts Docker Desktop, launches PostgreSQL, the API, the worker, and the frontend, then waits for readiness.
+7. Your default browser opens to the local application.
+8. Create your first account.
 
 Docker Desktop is a separate third-party product and is not bundled into this installer. WSL, virtualization, corporate policies, antivirus, proxies, and Windows permissions can affect setup.
 
@@ -65,6 +66,14 @@ docker compose up -d
 Open `http://localhost` when the default frontend port is available. The stack starts PostgreSQL, the backend, the worker, and the frontend; the backend bootstraps the schema on first use.
 
 See [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) for OAuth, email, security, and deployment configuration.
+
+## Code signing policy
+
+Official Windows releases are intended to use SignPath Foundation Open Source Code Signing, subject to SignPath Foundation acceptance and configuration. For the public repository and release documentation, see [CODE_SIGNING.md](CODE_SIGNING.md) and [PRIVACY.md](PRIVACY.md).
+
+"Free code signing provided by SignPath.io, certificate by SignPath Foundation"
+
+This repository is prepared for the intended public release flow and the GitHub Releases distribution model, but no release has been signed yet and no SignPath certificate is claimed to exist before external approval.
 
 ## Architecture
 
