@@ -4,9 +4,21 @@
 	<img src="frontend/public/logo.png" alt="iii3xnz logo" width="96">
 </p>
 
-**Self-hostable workflow automation with a visual builder, integrations, scheduling, and background execution.**
+**Open-source workflow automation with a visual builder, integrations, scheduling, and background execution.**
 
-iii3xnz helps developers and teams connect services, transform data, and run repeatable workflows on infrastructure they operate. Build workflows visually, trigger them manually or automatically, inspect each step, and keep execution data in PostgreSQL.
+iii3xnz helps developers and teams connect services, transform data, and run repeatable workflows. Build workflows visually, trigger them manually or automatically, inspect each step, and choose between the hosted service or infrastructure you operate yourself.
+
+### Choose how you want to use iii3xnz
+
+**Hosted**
+
+Try the hosted version of iii3xnz without installing or managing the infrastructure.
+
+[**Try iii3xnz Hosted ->**](https://iii3xnz-1.onrender.com/)
+
+**Self-hosted**
+
+Run the open-source version yourself using the Windows installer, Docker, or the documented source-based setup in this repository.
 
 ## What you can build
 
@@ -36,7 +48,7 @@ Provider APIs, credentials, quotas, pricing, and availability remain controlled 
 
 ### Windows
 
-1. Official Windows releases will be published through GitHub Releases at https://github.com/iii3xnz111/iii3xnz-opensource/releases.
+1. Official Windows releases will be published through [GitHub Releases](https://github.com/iii3xnz111/iii3xnz-opensource/releases).
 2. Download the current `iii3xnz-Setup.exe` from that release page.
 3. Run the installer.
 4. If Docker Desktop is missing, the installer uses Docker's official Docker Desktop installation flow.
@@ -67,11 +79,19 @@ Open `http://localhost` when the default frontend port is available. The stack s
 
 See [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) for OAuth, email, security, and deployment configuration.
 
+## Hosted iii3xnz
+
+If you prefer not to manage infrastructure yourself, use the hosted version of iii3xnz:
+
+[**Open iii3xnz Hosted ->**](https://iii3xnz-1.onrender.com/)
+
+This repository remains the open-source/self-hosted version for operators who want to run and manage their own deployment.
+
 ## Code signing policy
 
 Official Windows releases are intended to use SignPath Foundation Open Source Code Signing, subject to SignPath Foundation acceptance and configuration. For the public repository and release documentation, see [CODE_SIGNING.md](CODE_SIGNING.md) and [PRIVACY.md](PRIVACY.md).
 
-"Free code signing provided by SignPath.io, certificate by SignPath Foundation"
+Free code signing provided by SignPath.io, certificate by SignPath Foundation
 
 This repository is prepared for the intended public release flow and the GitHub Releases distribution model, but no release has been signed yet and no SignPath certificate is claimed to exist before external approval.
 
@@ -161,7 +181,7 @@ npm test
 
 The suite covers API behavior, authentication, crypto, plans, workflows, queues, RBAC, OAuth, mailer behavior, webhooks, node registration, and SSRF protections. Some API tests require disposable PostgreSQL and ephemeral security environment variables. Optional live integration tests require sandbox credentials.
 
-The focused audit checks passed for the frontend build, Remember Me storage, authentication sessions, credential encryption, plan logic, node registration, and SSRF protections. A previous full backend run reported 93 of 94 tests passing; the remaining failure was an OTP development-mailer log assertion.
+The focused audit checks passed for the frontend build, Remember Me storage, authentication sessions, credential encryption, plan logic, node registration, and SSRF protections. An earlier full backend run reported 93 of 94 tests passing; the remaining failure was an OTP development-mailer log assertion. No newer verified full-suite result is recorded here.
 
 ## Contributing
 
@@ -169,8 +189,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow. Focused pu
 
 There is currently no dedicated `SECURITY.md` document. For sensitive reports, coordinate with the project owner before public disclosure and do not publish credentials or exploit details.
 
+For questions, bug reports, and project discussion, use [GitHub Issues](https://github.com/iii3xnz111/iii3xnz-opensource/issues).
+
 ## Third-party services and license
 
 External services have their own terms, privacy policies, pricing, quotas, licenses, and availability. Product and service names belong to their respective owners. Runtime dependency licenses and attribution are collected in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
 
 This repository uses the Apache License 2.0. See [LICENSE](LICENSE). Copyright ownership and public-release licensing should receive human/legal review before broad distribution.
+
+For privacy and release documentation, see [PRIVACY.md](PRIVACY.md) and [CODE_SIGNING.md](CODE_SIGNING.md).
