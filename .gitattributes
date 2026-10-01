@@ -1,0 +1,12 @@
+# Force LF line endings on files that get baked into Linux Docker images, regardless of the
+# committer's OS or local git autocrlf setting. Windows git clients and GitHub's windows-latest
+# Actions runner both commonly default to autocrlf=true, which silently rewrites LF to CRLF on
+# checkout. A CRLF line ending on a shell script's shebang line (#!/bin/sh\r) makes Linux unable
+# to find the interpreter, failing with a confusing "exec ...: no such file or directory" --
+# exactly what broke the self-hosted installer's backend/worker containers. See DECISIONS.md.
+* text=auto
+*.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+docker-compose.yml text eol=lf
+*.conf text eol=lf

@@ -1,0 +1,207 @@
+name: iii3xnz release
+
+# Manual only: GitHub -> Actions -> "iii3xnz release" -> "Run workflow".
+# The release is named automatically: <UTC date>-build.<run number>, e.g. 2026.09.28-build.7
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: iii3xnz-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Backend tests and frontend build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: flowforge
+          POSTGRES_PASSWORD: flowforge-ci
+          POSTGRES_DB: flowforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U flowforge -d flowforge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://flowforge:flowforge-ci@localhost:5432/flowforge
+      NODE_ENV: test
+      JWT_SECRET: ci-only-jwt-secret-not-for-production
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      GOOGLE_OAUTH_CLIENT_ID: test-google-id
+      GOOGLE_OAUTH_CLIENT_SECRET: test-google-secret
+      SLACK_OAUTH_CLIENT_ID: test-slack-id
+      SLACK_OAUTH_CLIENT_SECRET: test-slack-secret
+      GITHUB_OAUTH_CLIENT_ID: test-github-id
+      GITHUB_OAUTH_CLIENT_SECRET: test-github-secret
+      MICROSOFT_OAUTH_CLIENT_ID: test-microsoft-id
+      MICROSOFT_OAUTH_CLIENT_SECRET: test-microsoft-secret
+      HUBSPOT_OAUTH_CLIENT_ID: test-hubspot-id
+      HUBSPOT_OAUTH_CLIENT_SECRET: test-hubspot-secret
+      DODO_WEBHOOK_SECRET: whsec_test_secret_value
+      DODO_PRODUCT_STARTER: starter-product
+      DODO_PRODUCT_PRO: pro-product
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Backend tests
+        working-directory: backend
+        run: npm test
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
+
+  release:
+    name: Build installer and publish release
+    needs: verify
+    runs-on: windows-latest
+    permissions:
+      contents: write   # create the GitHub Release
+      actions: read     # SignPath action reads the uploaded artifact
+    env:
+      # Signing is optional. These are true only when the maintainer configured the secret and variables.
+      SIGNPATH_CONFIGURED: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' && vars.SIGNPATH_PROJECT_SLUG != '' && vars.SIGNPATH_SIGNING_POLICY_SLUG != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute release name
+        id: version
+        shell: pwsh
+        run: |
+          $now = [DateTime]::UtcNow
+          $tag = '{0}-build.{1}' -f $now.ToString('yyyy.MM.dd'), $env:GITHUB_RUN_NUMBER
+          # Inno Setup wants a numeric x.y.z.w version
+          $numeric = '{0}.{1}.{2}.{3}' -f $now.Year, $now.Month, $now.Day, $env:GITHUB_RUN_NUMBER
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "numeric=$numeric" >> $env:GITHUB_OUTPUT
+          Write-Host "Release: $tag (installer version $numeric)"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Inno Setup 6
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ISCC.exe -ErrorAction SilentlyContinue) -and -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress --version=6.4.3
+            if ($LASTEXITCODE -ne 0) { choco install innosetup -y --no-progress }
+          }
+
+      - name: Build installer
+        shell: pwsh
+        run: ./installer/build-installer.ps1 -Version "${{ steps.version.outputs.numeric }}"
+
+      - name: Verify installer exists
+        shell: pwsh
+        run: |
+          $p = 'dist/installer/iii3xnz-Setup.exe'
+          if (-not (Test-Path $p)) { throw 'Installer output not found.' }
+          Get-Item $p | Select-Object FullName, Length
+
+      - name: Upload unsigned installer
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: iii3xnz-setup-unsigned
+          path: dist/installer/iii3xnz-Setup.exe
+
+      # Optional signing. continue-on-error means a misconfigured or unavailable SignPath
+      # never blocks the release; the release then ships unsigned and says so.
+      - name: Sign installer with SignPath (optional)
+        id: sign
+        if: ${{ env.SIGNPATH_CONFIGURED == 'true' }}
+        continue-on-error: true
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist/signed
+
+      - name: Choose release file and write notes
+        id: pick
+        shell: pwsh
+        run: |
+          $signed = 'dist/signed/iii3xnz-Setup.exe'
+          $unsigned = 'dist/installer/iii3xnz-Setup.exe'
+          $isSigned = ('${{ steps.sign.outcome }}' -eq 'success') -and (Test-Path $signed)
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          $src = if ($isSigned) { $signed } else { $unsigned }
+          Copy-Item $src release/iii3xnz-Setup.exe
+          $hash = (Get-FileHash release/iii3xnz-Setup.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  iii3xnz-Setup.exe" | Set-Content -Encoding ascii release/iii3xnz-Setup.exe.sha256
+          $notes = @()
+          $notes += "iii3xnz ${{ steps.version.outputs.tag }}"
+          $notes += ""
+          $notes += "SHA-256: ``$hash``"
+          $notes += ""
+          if ($isSigned) {
+            $notes += "This installer is Authenticode-signed."
+          } else {
+            $notes += "**Unsigned build.** This installer is not code-signed, so Windows SmartScreen may warn you. Verify the SHA-256 checksum above (or the .sha256 file) before running it."
+          }
+          $notes += ""
+          $notes += "Licensed under the iii3xnz Sustainable Use License (see LICENSE.md). Source-available; not open source. Hosting, reselling or white-labeling requires a commercial license (COMMERCIAL-LICENSING.md)."
+          $notes | Set-Content -Encoding utf8 release/notes.md
+          "signed=$isSigned" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" `
+            release/iii3xnz-Setup.exe release/iii3xnz-Setup.exe.sha256 `
+            --title "iii3xnz ${{ steps.version.outputs.tag }}" `
+            --notes-file release/notes.md `
+            --target "${{ github.sha }}"
+          if ($LASTEXITCODE -ne 0) { throw 'gh release create failed' }
